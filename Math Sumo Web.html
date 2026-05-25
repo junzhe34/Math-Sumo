@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Sumo Maths Battle</title>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #f0dfa8;
+    --ring-out: #c79958;
+    --ring-in:  #ead9a0;
+    --panel:    #1a1208ee;
+    --player:   #2566d1;
+    --opp:      #d12525;
+    --btn-g:    #2e7d3a;
+    --btn-g2:   #3da34c;
+    --brown:    #6b4c2a;
+    --white:    #ffffff;
+    --yellow:   #ffd914;
+    --green:    #22c744;
+    --red:      #e62020;
+    --orange:   #f07a0a;
+    --grey:     #aaaaaa;
+    --grey2:    #666666;
+    --skin:     #f0c894;
+    --belt-p:   #1a1a8c;
+    --belt-o:   #8c0d0d;
+    --shadow:   rgba(0,0,0,0.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;background:#2a1f0e;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;}
+  #wrap{width:min(420px,100vw);height:min(720px,100svh);background:var(--bg);position:relative;overflow:hidden;border-radius:12px;box-shadow:0 8px 40px #0008;}
+  canvas{display:block;width:100%;height:100%;}
+
+  /* ── overlay UI ── */
+  #ui{position:absolute;inset:0;pointer-events:none;}
+  .layer{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;pointer-events:none;}
+  .layer.active{display:flex;pointer-events:all;}
+
+  /* shared button */
+  .btn{border:none;cursor:pointer;font-family:'Lilita One',cursive;border-radius:8px;color:#fff;
+       box-shadow:0 4px 0 #0004;transition:transform .08s,box-shadow .08s;user-select:none;}
+  .btn:active{transform:translateY(2px);box-shadow:0 2px 0 #0004;}
+
+  /* ══ MENU ══ */
+  #menu{justify-content:flex-end;padding-bottom:4%;}
+  #menu-banner{position:absolute;top:0;left:0;right:0;background:var(--panel);padding:14px 0 10px;text-align:center;}
+  #menu-banner h1{font-family:'Lilita One',cursive;font-size:clamp(22px,5.5vw,28px);color:#fff;letter-spacing:1px;}
+  #menu-banner p{font-size:13px;color:var(--yellow);margin-top:2px;}
+  #diff-section{width:92%;margin-bottom:10px;}
+  #diff-label{font-size:15px;font-weight:900;color:var(--grey2);text-align:center;margin-bottom:6px;}
+  #diff-btns{display:flex;gap:8px;justify-content:center;}
+  .diff-btn{flex:1;max-width:120px;padding:10px 0;font-size:17px;border-radius:8px;border:3px solid transparent;transition:border .15s,transform .08s;}
+  .diff-btn.sel{border-color:#fff;transform:scale(1.06);}
+  #desc-strip{width:92%;background:var(--panel);border-radius:6px;padding:7px;text-align:center;font-size:11px;margin-bottom:6px;}
+  #rules-strip{width:92%;background:#1a120899;border-radius:6px;padding:7px;text-align:center;font-size:11px;color:var(--yellow);margin-bottom:10px;}
+  #start-btn{width:180px;padding:14px 0;font-size:22px;background:var(--brown);}
+
+  /* ══ GAME ══ */
+  #game{justify-content:flex-start;}
+  #score-bar{width:100%;background:var(--panel);padding:6px 12px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#fff;font-weight:700;flex-shrink:0;}
+  #q-panel{width:92%;background:var(--panel);border-radius:10px;margin:6px auto 0;overflow:hidden;flex-shrink:0;}
+  #diff-badge{text-align:center;padding:5px;font-family:'Lilita One',cursive;font-size:14px;color:#fff;}
+  #question-text{text-align:center;font-family:'Lilita One',cursive;font-size:clamp(20px,5vw,26px);color:var(--yellow);padding:10px 8px 8px;}
+  #choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 8px 10px;}
+  .choice-btn{padding:14px 0;font-size:20px;background:var(--btn-g);border-radius:8px;}
+  .choice-btn.correct{background:#1a7a2a!important;}
+  .choice-btn.wrong{background:#8a1010!important;}
+  #ring-area{flex:1;position:relative;width:100%;}
+
+  /* position dots */
+  #dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px;}
+  .dot-group{display:flex;gap:5px;}
+  .dot{width:18px;height:18px;border-radius:50%;background:var(--grey);}
+  .dot.p-on{background:var(--red);}
+  .dot.o-on{background:var(--orange);}
+  #dots-mid{font-size:10px;color:var(--grey2);font-weight:700;margin:0 8px;text-align:center;line-height:1.3;}
+
+  /* ══ RESULT ══ */
+  #result{justify-content:flex-start;padding-top:6px;}
+  #result-panel{width:88%;background:var(--panel);border-radius:10px;overflow:hidden;}
+  #result-banner{text-align:center;padding:8px;font-family:'Lilita One',cursive;font-size:14px;color:#fff;}
+  #result-body{padding:10px 14px;color:#fff;font-size:13px;text-align:center;line-height:1.9;}
+  #next-btn{width:180px;padding:12px 0;font-size:18px;background:var(--brown);margin-top:10px;}
+
+  /* ══ GAMEOVER ══ */
+  #gameover{justify-content:flex-start;padding-top:6px;}
+  #go-panel{width:88%;background:var(--panel);border-radius:10px;overflow:hidden;}
+  #go-banner{text-align:center;padding:12px;font-family:'Lilita One',cursive;font-size:26px;color:#fff;}
+  #go-body{padding:10px 14px 14px;color:#fff;font-size:13px;text-align:center;line-height:2;}
+  #go-btns{display:flex;gap:10px;justify-content:center;margin-top:10px;}
+  #retry-btn{padding:12px 28px;font-size:18px;background:var(--btn-g);}
+  #menu-btn{padding:12px 28px;font-size:18px;background:var(--brown);}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="ui">
+
+    <!-- MENU -->
+    <div class="layer" id="menu">
+      <div id="menu-banner">
+        <h1>⚔️ SUMO MATHS BATTLE</h1>
+        <p>Primary 5 Edition</p>
+      </div>
+      <div id="diff-section">
+        <div id="diff-label">Choose Difficulty:</div>
+        <div id="diff-btns">
+          <button class="btn diff-btn" id="d-Easy"   style="background:#2e9e47;" onclick="setDiff('Easy')">Easy</button>
+          <button class="btn diff-btn" id="d-Medium" style="background:#c87d06;" onclick="setDiff('Medium')">Medium</button>
+          <button class="btn diff-btn" id="d-Hard"   style="background:#c41818;" onclick="setDiff('Hard')">Hard</button>
+        </div>
+      </div>
+      <div id="desc-strip"></div>
+      <div id="rules-strip">✅ Correct = push opp 1 step &nbsp;|&nbsp; ❌ Wrong = pushed back 1 step &nbsp;|&nbsp; 3 steps = OUT</div>
+      <button class="btn" id="start-btn" onclick="startGame()">START GAME</button>
+    </div>
+
+    <!-- GAME -->
+    <div class="layer" id="game">
+      <div id="score-bar">
+        <span id="q-label">Q 0/10</span>
+        <span id="score-label">✅ 0 &nbsp; ❌ 0</span>
+      </div>
+      <div id="q-panel">
+        <div id="diff-badge"></div>
+        <div id="question-text"></div>
+        <div id="choices">
+          <button class="btn choice-btn" id="c0" onclick="answer(0)"></button>
+          <button class="btn choice-btn" id="c1" onclick="answer(1)"></button>
+          <button class="btn choice-btn" id="c2" onclick="answer(2)"></button>
+          <button class="btn choice-btn" id="c3" onclick="answer(3)"></button>
+        </div>
+      </div>
+      <div id="ring-area">
+        <div id="dots">
+          <div class="dot-group" id="p-dots"></div>
+          <div id="dots-mid">YOU &nbsp;|&nbsp; OPP<br><span style="font-size:9px;color:#999">3 steps = OUT</span></div>
+          <div class="dot-group" id="o-dots"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="layer" id="result">
+      <div id="result-panel">
+        <div id="result-banner"></div>
+        <div id="result-body"></div>
+      </div>
+      <button class="btn" id="next-btn" onclick="nextQ()">Next Question ▶</button>
+    </div>
+
+    <!-- GAMEOVER -->
+    <div class="layer" id="gameover">
+      <div id="go-panel">
+        <div id="go-banner"></div>
+        <div id="go-body"></div>
+      </div>
+      <div id="go-btns">
+        <button class="btn" id="retry-btn" onclick="startGame()">▶ Play Again</button>
+        <button class="btn" id="menu-btn"  onclick="goMenu()">☰ Menu</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+const DIFFICULTY = {
+  Easy:   { ops:['+','-'], add:[[10,50],[10,50]], sub:[[20,99],[5,20]],   mul:[[2,5],[2,5]],   div:[[1,9],[2,4]],   desc:'Addition & Subtraction  |  numbers 10–99',  color:'#2e9e47' },
+  Medium: { ops:['+','-','x'], add:[[50,500],[50,500]], sub:[[100,999],[20,200]], mul:[[3,12],[3,12]], div:[[2,12],[3,12]], desc:'+ − × &nbsp;|&nbsp; numbers up to 999', color:'#c87d06' },
+  Hard:   { ops:['+','-','x','/'], add:[[500,9999],[500,9999]], sub:[[500,9999],[100,4999]], mul:[[6,25],[6,25]], div:[[6,25],[2,12]], desc:'+ − × ÷ &nbsp;|&nbsp; large numbers & division', color:'#c41818' },
+};
+const MAX_STEPS = 3, TOTAL_Q = 10;
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let diffKey='Medium', playerSteps=0, oppSteps=0, qNum=0, correct=0, wrong=0;
+let curAnswer=0, choices=[], answered=false;
+let animOffset=0, animDir=1, animWho='none', animTimer=0;
+let shake = false;
+
+// ═══════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════
+const wrap=document.getElementById('wrap');
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let W=0,H=0;
+
+function resize(){
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  canvas.width=W; canvas.height=H;
+}
+window.addEventListener('resize',()=>{resize();draw();});
+resize();
+
+// ═══════════════════════════════════════════════
+//  LAYERS
+// ═══════════════════════════════════════════════
+function showLayer(id){
+  ['menu','game','result','gameover'].forEach(l=>{
+    document.getElementById(l).classList.toggle('active',l===id);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  MENU
+// ═══════════════════════════════════════════════
+function setDiff(d){
+  diffKey=d;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('d-'+d).classList.add('sel');
+  document.getElementById('desc-strip').innerHTML=
+    `<span style="color:${DIFFICULTY[d].color};font-weight:900">${d}:</span> <span style="color:#ddd">${DIFFICULTY[d].desc}</span>`;
+}
+setDiff('Medium');
+
+function goMenu(){
+  showLayer('menu');
+  draw();
+}
+
+// ═══════════════════════════════════════════════
+//  GAME FLOW
+// ═══════════════════════════════════════════════
+function startGame(){
+  playerSteps=0; oppSteps=0; qNum=0; correct=0; wrong=0;
+  updateDots();
+  showLayer('game');
+  nextQ();
+}
+
+function nextQ(){
+  answered=false;
+  animWho='none'; animOffset=0;
+  // re-enable buttons
+  for(let i=0;i<4;i++){
+    const b=document.getElementById('c'+i);
+    b.classList.remove('correct','wrong');
+    b.disabled=false;
+  }
+  const [q,ans]=makeQuestion(diffKey);
+  curAnswer=ans;
+  choices=makeChoices(ans);
+  qNum++;
+
+  document.getElementById('q-label').textContent=`Q ${qNum}/${TOTAL_Q}`;
+  document.getElementById('score-label').textContent=`✅ ${correct}  ❌ ${wrong}`;
+  const dc=DIFFICULTY[diffKey].color;
+  document.getElementById('diff-badge').style.background=dc;
+  document.getElementById('diff-badge').textContent=diffKey+' Difficulty';
+  document.getElementById('question-text').textContent=q;
+  for(let i=0;i<4;i++) document.getElementById('c'+i).textContent=choices[i];
+
+  showLayer('game');
+  draw();
+}
+
+function answer(idx){
+  if(answered) return;
+  answered=true;
+  const picked=choices[idx];
+  const isCorrect=(picked===curAnswer);
+
+  for(let i=0;i<4;i++){
+    document.getElementById('c'+i).disabled=true;
+    if(choices[i]===curAnswer) document.getElementById('c'+i).classList.add('correct');
+  }
+  if(!isCorrect) document.getElementById('c'+idx).classList.add('wrong');
+
+  if(isCorrect){ correct++; oppSteps++; animWho='opp'; }
+  else          { wrong++;  playerSteps++; animWho='player'; }
+  updateDots();
+
+  // trigger push animation
+  animTimer=0; animOffset=0; animDir=1;
+  requestAnimationFrame(animLoop);
+
+  setTimeout(()=>{
+    if(playerSteps>=MAX_STEPS||oppSteps>=MAX_STEPS||qNum>=TOTAL_Q){
+      showGameOver(isCorrect);
+    } else {
+      showResult(isCorrect);
+    }
+    draw();
+  }, 700);
+}
+
+function animLoop(ts){
+  if(animWho==='none') return;
+  animOffset += animDir * 4;
+  if(animOffset>18) animDir=-1;
+  if(animOffset<-2 && animDir===-1){ animOffset=0; animWho='none'; draw(); return; }
+  draw();
+  requestAnimationFrame(animLoop);
+}
+
+function showResult(isCorrect){
+  const dc=isCorrect?'#1a7a2a':'#8a1010';
+  const msg=isCorrect?'✅ CORRECT! Opponent pushed back!':'❌ WRONG! You were pushed back!';
+  document.getElementById('result-banner').style.background=dc;
+  document.getElementById('result-banner').textContent=msg;
+  document.getElementById('result-body').innerHTML=
+    `<span style="color:#ff8080">Your steps back: ${playerSteps} / ${MAX_STEPS}</span><br>
+     <span style="color:#ffaa44">Opp steps back: ${oppSteps} / ${MAX_STEPS}</span>`;
+  showLayer('result');
+}
+
+function showGameOver(lastCorrect){
+  let won;
+  if(oppSteps>=MAX_STEPS) won=true;
+  else if(playerSteps>=MAX_STEPS) won=false;
+  else won=correct>wrong;
+
+  document.getElementById('go-banner').style.background=won?'#1a7a2a':'#8a1010';
+  document.getElementById('go-banner').textContent=won?'🏆 YOU WIN!':'💥 YOU LOSE!';
+  document.getElementById('go-body').innerHTML=
+    `<span style="color:${DIFFICULTY[diffKey].color};font-weight:900">${diffKey} Difficulty</span><br>
+     <span style="color:var(--yellow)">✅ Correct: ${correct} &nbsp; ❌ Wrong: ${wrong} &nbsp; Qs: ${qNum}</span><br>
+     <span style="color:#ff8080">Player pushed: ${playerSteps}/${MAX_STEPS} steps</span><br>
+     <span style="color:#ffaa44">Opp pushed: ${oppSteps}/${MAX_STEPS} steps</span>`;
+  showLayer('gameover');
+}
+
+// ═══════════════════════════════════════════════
+//  DOTS
+// ═══════════════════════════════════════════════
+function updateDots(){
+  const pd=document.getElementById('p-dots');
+  const od=document.getElementById('o-dots');
+  pd.innerHTML=''; od.innerHTML='';
+  for(let i=1;i<=MAX_STEPS;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(playerSteps>=i?' p-on':'');
+    pd.appendChild(d);
+  }
+  for(let i=1;i<=MAX_STEPS;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(oppSteps>=i?' o-on':'');
+    od.appendChild(d);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  QUESTION GENERATOR
+// ═══════════════════════════════════════════════
+function ri(lo,hi){return Math.floor(Math.random()*(hi-lo+1))+lo;}
+function makeQuestion(dk){
+  const cfg=DIFFICULTY[dk];
+  const op=cfg.ops[Math.floor(Math.random()*cfg.ops.length)];
+  let a,b,ans,sym;
+  if(op==='+'){
+    a=ri(...cfg.add[0]); b=ri(...cfg.add[1]); ans=a+b; sym='+';
+  } else if(op==='-'){
+    a=ri(...cfg.sub[0]); b=ri(cfg.sub[1][0], Math.min(cfg.sub[1][1],a-1)); ans=a-b; sym='−';
+  } else if(op==='x'){
+    a=ri(...cfg.mul[0]); b=ri(...cfg.mul[1]); ans=a*b; sym='×';
+  } else {
+    ans=ri(...cfg.div[0]); b=ri(...cfg.div[1]); a=ans*b; sym='÷';
+  }
+  return [`${a} ${sym} ${b} = ?`, ans];
+}
+function makeChoices(correct){
+  const pool=new Set([correct]);
+  const spread=Math.max(5,Math.floor(Math.abs(correct)/8)+2);
+  for(let t=0;t<400&&pool.size<4;t++){
+    const d=ri(1,spread);
+    const w=correct+(Math.random()<0.5?-1:1)*d;
+    if(w!==correct&&w>=0) pool.add(w);
+  }
+  let off=1;
+  while(pool.size<4){ pool.add(correct+off); off++; }
+  return [...pool].sort(()=>Math.random()-0.5);
+}
+
+// ═══════════════════════════════════════════════
+//  CANVAS DRAWING
+// ═══════════════════════════════════════════════
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#f0dfa8';
+  ctx.fillRect(0,0,W,H);
+  drawRing();
+}
+
+function drawRing(){
+  // ring position depends on active layer
+  const inGame=document.getElementById('game').classList.contains('active');
+  const inResult=document.getElementById('result').classList.contains('active');
+  const inGO=document.getElementById('gameover').classList.contains('active');
+  const inMenu=document.getElementById('menu').classList.contains('active');
+
+  let cy, ringR;
+  if(inMenu){ cy=H*0.585; ringR=Math.min(W,H)*0.17; }
+  else       { cy=H*0.76;  ringR=Math.min(W,H)*0.30; }
+
+  const cx=W/2;
+
+  // shadow
+  ell(cx,cy,ringR*2.12,ringR*0.94,'rgba(0,0,0,0.18)');
+  // outer
+  ell(cx,cy,ringR*2,ringR*0.88,'#c79958');
+  // inner
+  ell(cx,cy,ringR*1.74,ringR*0.76,'#ead9a0');
+  // centre line
+  ctx.fillStyle='rgba(120,80,30,0.5)';
+  ctx.fillRect(cx-2, cy-ringR*0.36, 4, ringR*0.72);
+
+  const stepPx=ringR*0.38;
+  const pOff=animWho==='player'?animOffset:0;
+  const oOff=animWho==='opp'?animOffset:0;
+  const pxX=cx - stepPx*(1+playerSteps*0.6) + pOff;
+  const oxX=cx + stepPx*(1+oppSteps*0.6)    + oOff;
+  const wr=ringR*(inMenu?0.15:0.22);
+
+  drawWrestler(pxX,cy,wr,'#2566d1','#1a1a8c','YOU');
+  drawWrestler(oxX,cy,wr,'#d12525','#8c0d0d','OPP');
+}
+
+function ell(cx,cy,w,h,color){
+  ctx.save();
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,w/2,h/2,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawWrestler(cx,cy,r,bodyClr,beltClr,label){
+  // shadow
+  ell(cx,cy+r*0.1,r*1.7,r*0.32,'rgba(0,0,0,0.18)');
+  // body
+  ell(cx,cy,r*2,r*1.75,bodyClr);
+  // belt
+  ctx.fillStyle=beltClr;
+  ctx.fillRect(cx-r, cy-r*0.05, r*2, r*0.40);
+  // head (moved up above body)
+  ell(cx,cy-r*1.1,r*1.16,r*1.16,'#f0c894');
+  // topknot
+  ell(cx,cy-r*1.65,r*0.28,r*0.28,'#3a2800');
+  // face dots (eyes)
+  ell(cx-r*0.2,cy-r*1.12,r*0.18,r*0.18,'#222');
+  ell(cx+r*0.2,cy-r*1.12,r*0.18,r*0.18,'#222');
+  // mouth
+  ctx.strokeStyle='#555'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.arc(cx,cy-r*0.98,r*0.15,0.2,Math.PI-0.2);
+  ctx.stroke();
+  // label on body
+  ctx.fillStyle='#fff';
+  ctx.font=`900 ${Math.round(r*0.68)}px 'Lilita One',cursive`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(label,cx,cy+r*0.18);
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+showLayer('menu');
+draw();
+</script>
+</body>
+</html>
